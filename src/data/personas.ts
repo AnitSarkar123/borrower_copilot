@@ -56,9 +56,9 @@ export const PERSONA_PROFILES: Record<string, BorrowerProfile> = {
     purpose: "vehicle_income",
     hasCollateral: false,
     collateralValue: null,
-    existingHighCostDebt: true,
-    recentEmiBounce: true,
-    borrowingToRepay: true,
+    existingHighCostDebt: false,
+    recentEmiBounce: false,
+    borrowingToRepay: false,
     lenderQuote: null,
   },
 };

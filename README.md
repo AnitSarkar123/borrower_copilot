@@ -1,36 +1,132 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Borrower Copilot
+
+Borrower Copilot is a borrower-first decision support app for Indian borrowers. It helps users understand whether a loan is sensible, how much is financially safe to borrow, what a fair rate range looks like, and whether the EMI remains manageable under a stress scenario.
+
+The app is deliberately deterministic: it does not rely on an AI model to approve or reject borrowing. Instead, the financial logic is implemented in TypeScript and exposed through a simple UI that can be used for negotiation and borrower education.
+
+## Overview
+
+Borrower Copilot answers four key questions:
+
+1. Should I borrow at all?
+2. How much is it safe to borrow?
+3. What is a reasonable rate range?
+4. What EMI should I aim for?
+
+It also produces a negotiation card with borrower-safe guidance and a clear verdict:
+
+- Borrow
+- Borrow Less
+- Don't Borrow
+
+## Key Features
+
+- Borrower profile inputs for income, expenses, EMIs, requested amount, and loan purpose
+- Deterministic affordability and EMI calculations
+- Borrower-safe amount vs lender-likely amount separation
+- Fair rate band based on profile and product type
+- Stress scenario analysis for income drop and rate increase
+- Persona presets for Priya, Ravi, and Anita
+- Negotiation card summary for lender discussions
+- Vitest regression tests for affordability and verdict logic
+- Next.js App Router UI with TypeScript
+
+## Product Philosophy
+
+This project follows a simple principle:
+
+- The UI is for explanation and decision support.
+- The financial engine is the source of truth.
+- AI, if added later, should only explain the result rather than replace rule-based logic.
+
+## Tech Stack
+
+- Next.js 16
+- React 19
+- TypeScript
+- Tailwind CSS
+- Vitest
+
+## Project Structure
+
+```text
+borrower_copilot/
+├── README.md
+├── PRD.md
+├── RULES.md
+├── architecture.md
+├── DESIGN.md
+├── PROGRESS.md
+├── AGENT.md
+├── AGENTS.md
+├── CLAUDE.md
+├── package.json
+├── next.config.ts
+├── tsconfig.json
+├── public/
+└── src/
+    ├── app/
+    │   ├── globals.css
+    │   ├── layout.tsx
+    │   └── page.tsx
+    ├── calculations/
+    ├── data/
+    ├── engine/
+    ├── rules/
+    ├── tests/
+    └── types/
+```
 
 ## Getting Started
 
-First, run the development server:
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000 in the browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Run Tests
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm test
+```
 
-## Learn More
+## Production Build
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run build
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Verification Status
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The project is currently validated with:
 
-## Deploy on Vercel
+- Vitest test suite passing
+- Next.js production build succeeding
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Documentation Set
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The project includes companion documents that explain the product and implementation intent:
+
+- PRD.md — product requirements
+- RULES.md — business assumptions and thresholds
+- architecture.md — technical design
+- DESIGN.md — UI and UX decisions
+- PROGRESS.md — current implementation status
+
+## Notes
+
+Borrower Copilot is a prototype and is intended for educational / decision-support use, not for official lender underwriting or approval decisions.
+
+## License
+
+This project is provided as a local assignment/demo project without a formal externally published license.
+

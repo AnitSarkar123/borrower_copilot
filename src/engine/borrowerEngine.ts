@@ -24,28 +24,31 @@ export function buildBorrowerResult(
   const rateRange = getRateRange(profile, routeProduct(profile).type);
   const safeEmi = calculateSafeEmi(profile);
   const lenderLikelyEmi = Math.max(0, profile.monthlyIncome ? profile.monthlyIncome * RULE_CONFIG.foirLimits[profile.incomeType] - (profile.existingEmi ?? 0) : 0);
-  const safeAmount = Math.max(0, principalFromEmi(safeEmi, overrideRatePercent, preferredTenureMonths));
-  const lenderLikelyAmount = Math.max(0, principalFromEmi(lenderLikelyEmi, overrideRatePercent, preferredTenureMonths));
+  const safeAmountCap = Math.max(0, principalFromEmi(safeEmi, overrideRatePercent, preferredTenureMonths));
+  const lenderLikelyAmountCap = Math.max(0, principalFromEmi(lenderLikelyEmi, overrideRatePercent, preferredTenureMonths));
   const requestedAmount = profile.requestedAmount;
   const decision = makeBorrowingDecision(profile, preferredTenureMonths, overrideRatePercent);
-  const stress = calculateStressResult(profile, Math.min(requestedAmount, safeAmount || requestedAmount), overrideRatePercent, preferredTenureMonths);
+  const stress = calculateStressResult(profile, Math.min(requestedAmount, safeAmountCap || requestedAmount), overrideRatePercent, preferredTenureMonths);
   const confidence = calculateConfidence(profile);
   const product = routeProduct(profile);
   const processingFee = calculateProcessingFee(requestedAmount, RULE_CONFIG.processingFeeRate);
-  const totalInterest = calculateTotalInterest(Math.min(requestedAmount, safeAmount || requestedAmount), overrideRatePercent, preferredTenureMonths);
+  const totalInterest = calculateTotalInterest(Math.min(requestedAmount, safeAmountCap || requestedAmount), overrideRatePercent, preferredTenureMonths);
   const totalCost = calculateTotalBorrowingCost(
-    Math.min(requestedAmount, safeAmount || requestedAmount),
+    Math.min(requestedAmount, safeAmountCap || requestedAmount),
     totalInterest,
     processingFee,
   );
 
   let verdict: Verdict = decision.verdict;
-  if (requestedAmount > safeAmount && safeAmount < requestedAmount * 0.75) {
+  const requestedExceedsSafeCap = requestedAmount > safeAmountCap && safeAmountCap > 0;
+  const requestedNearSafeCap = requestedAmount > 0 && requestedAmount > safeAmountCap * 0.9 && requestedAmount <= safeAmountCap;
+
+  if (requestedExceedsSafeCap || requestedNearSafeCap) {
     verdict = "BORROW_LESS";
   }
 
   const debtStress = detectDebtStress(profile);
-  if (debtStress.severe && profile.requestedAmount > safeAmount) {
+  if (debtStress.severe && (requestedAmount > safeAmountCap || requestedAmount > safeAmountCap * 0.8)) {
     verdict = "DONT_BORROW";
   }
 
@@ -59,6 +62,9 @@ export function buildBorrowerResult(
     confidence: `Confidence is ${confidence.label.toLowerCase()} because the profile is partly complete and some information is missing or uncertain.`,
     product: product.reason,
   };
+
+  const safeAmount = Math.max(0, Math.min(requestedAmount, safeAmountCap));
+  const lenderLikelyAmount = Math.max(0, Math.min(requestedAmount, lenderLikelyAmountCap));
 
   return {
     verdict,

@@ -20,20 +20,28 @@ export function makeBorrowingDecision(profile: BorrowerProfile, tenureMonths: nu
   const requestedEmi = calculateEmi(profile.requestedAmount, ratePercent, tenureMonths);
   const stressDebt = detectDebtStress(profile);
   const product = routeProduct(profile);
+  const safeLoanCap = Math.max(0, safeEmi * 20 * 12);
+  const requestedAmount = profile.requestedAmount ?? 0;
+  const hasSevereStress = Boolean(stressDebt.severe && requestedAmount > 0);
+  const isNearSafeCap = safeLoanCap > 0 && requestedAmount > 0 && requestedAmount > safeLoanCap * 0.9 && requestedAmount <= safeLoanCap;
+  const exceedsSafeCap = safeLoanCap > 0 && requestedAmount > safeLoanCap;
 
   let verdict: Verdict = "BORROW";
   let reason = "Your borrowing looks manageable under the current assumptions.";
 
-  if (stressDebt.severe || disposable < 0) {
+  if (disposable < 0 || hasSevereStress) {
     verdict = "DONT_BORROW";
-    reason = stressDebt.reason || "Your cash flow is too tight to justify additional borrowing.";
-  } else if (requestedEmi > safeEmi || profile.requestedAmount > 0 && profile.requestedAmount > safeEmi * 20 * 12) {
+    reason = stressDebt.reason || "Your monthly cash flow is too tight for additional borrowing.";
+  } else if (requestedEmi > safeEmi || exceedsSafeCap) {
     verdict = "BORROW_LESS";
-    reason = "Your requested loan would exceed the safer affordability ceiling.";
+    reason = "Your requested loan is above the safer affordability ceiling. Lowering the amount would improve comfort.";
+  } else if (isNearSafeCap) {
+    verdict = "BORROW_LESS";
+    reason = "You are close to the safe borrowing limit. A smaller loan would keep the EMI more comfortable.";
   }
 
-  const safeAmount = Math.max(0, Math.min(profile.requestedAmount, safeEmi * 20 * 12));
-  const lenderLikelyAmount = Math.max(0, profile.requestedAmount * 1.15);
+  const safeAmount = Math.max(0, Math.min(requestedAmount, safeLoanCap));
+  const lenderLikelyAmount = Math.max(0, requestedAmount * 1.15);
 
   return {
     verdict,

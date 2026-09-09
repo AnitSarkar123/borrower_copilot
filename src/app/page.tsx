@@ -12,11 +12,81 @@ const formatMoney = (value: number | null) =>
 
 const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 
+const formatVerdict = (verdict: string) => {
+  switch (verdict) {
+    case 'BORROW':
+      return 'Borrow';
+    case 'BORROW_LESS':
+      return 'Borrow less';
+    case 'DONT_BORROW':
+      return "Don't borrow";
+    default:
+      return verdict;
+  }
+};
+
 export default function Home() {
   const [profile, setProfile] = useState<BorrowerProfile>(defaultState);
   const [selectedPersona, setSelectedPersona] = useState<'priya' | 'ravi' | 'anita'>('priya');
 
   const result = useMemo(() => buildBorrowerResult(profile, 12), [profile]);
+
+  const handleDownloadNegotiationPdf = () => {
+    const lines: string[] = [
+      'Borrower Copilot — Negotiation Card',
+      `Verdict: ${formatVerdict(result.verdict)}`,
+      `Recommended amount: ${formatMoney(result.recommendedAmount)}`,
+      `Safe EMI: ${formatMoney(result.safeEmi)}/month`,
+      `Borrower-safe amount: ${formatMoney(result.safeAmount)}`,
+      `Fair rate range: ${formatPercent(result.rateRange.minPercent)} – ${formatPercent(result.rateRange.maxPercent)}`,
+      '',
+      'Negotiation points:',
+      ...result.negotiationPoints.map((point) => `• ${point}`),
+    ];
+
+    const escapePdfText = (value: string) =>
+      value
+        .replace(/\\/g, '\\\\')
+        .replace(/\(/g, '\\(')
+        .replace(/\)/g, '\\)');
+
+    const contentLines = lines.map((line, index) => {
+      const y = 760 - index * 24;
+      return `BT /F1 12 Tf 50 ${y} Td (${escapePdfText(line)}) Tj ET`;
+    }).join('\n');
+
+    const objects: string[] = [
+      '<< /Type /Catalog /Pages 2 0 R >>',
+      '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+      `<< /Length ${contentLines.length} >>\nstream\n${contentLines}\nendstream`,
+      '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+    ];
+
+    let pdf = '%PDF-1.4\n';
+    const offsets: number[] = [0];
+    objects.forEach((obj, index) => {
+      offsets.push(pdf.length);
+      pdf += `${index + 1} 0 obj\n${obj}\nendobj\n`;
+    });
+
+    const xrefPosition = pdf.length;
+    pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+    for (let i = 1; i <= objects.length; i += 1) {
+      pdf += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`;
+    }
+    pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefPosition}\n%%EOF`;
+
+    const file = new Blob([pdf], { type: 'application/pdf' });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'borrower-negotiation-card.pdf';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
 
   const updateField = <K extends keyof BorrowerProfile>(key: K, value: BorrowerProfile[K]) => {
     setProfile((current) => ({ ...current, [key]: value }));
@@ -93,6 +163,7 @@ export default function Home() {
                   onChange={(e) => updateField('householdExpenses', Number(e.target.value) || null)}
                 />
               </label>
+
 
               <label className="text-sm font-medium text-slate-700">
                 Existing EMI
@@ -186,7 +257,7 @@ export default function Home() {
                 </span>
               </div>
 
-              <h2 className="text-3xl font-black uppercase tracking-tight text-slate-900">{result.verdict}</h2>
+              <h2 className="text-3xl font-black tracking-tight text-slate-900">{formatVerdict(result.verdict)}</h2>
               <p className="mt-2 text-slate-700">{result.verdictReasons[0]}</p>
             </div>
 
@@ -239,8 +310,16 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="card p-5">
-              <h3 className="text-lg font-bold">Negotiation card</h3>
+            <div className="print-negotiation card p-5">
+              <div className="no-print mb-3 flex items-center justify-between gap-3">
+                <h3 className="text-lg font-bold">Negotiation card</h3>
+                <button
+                  onClick={handleDownloadNegotiationPdf}
+                  className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                >
+                  Download PDF
+                </button>
+              </div>
               <ul className="mt-3 space-y-2 text-sm text-slate-700">
                 {result.negotiationPoints.map((point) => (
                   <li key={point}>• {point}</li>
